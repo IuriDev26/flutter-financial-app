@@ -1,12 +1,12 @@
 import 'dart:math';
 
-import 'package:financial/DTOs/transaction_chart.dart';
+import 'package:financial/DTOs/scrollable_child.dart';
 import 'package:financial/components/chart.dart';
-import 'package:financial/components/chart_bar.dart';
 import 'package:financial/components/transaction_form.dart';
 import 'package:financial/components/transaction_list.dart';
 import 'package:financial/models/transaction.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Scrollable;
+import 'package:financial/components/scrollable.dart';
 
 main() => runApp(FinancialApp());
 
@@ -40,51 +40,32 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final List<Transaction> _transactions = [
-    Transaction(
-      id: Random().nextDouble().toString(),
-      title: 'Calção',
-      value: 20,
-      date: DateTime(2025, 08, 05),
-    ),
-    Transaction(
-      id: Random().nextDouble().toString(),
-      title: 'Roupa',
-      value: 50,
-      date: DateTime(2025, 08, 9),
-    ),
-    Transaction(
-      id: Random().nextDouble().toString(),
-      title: 'Cama',
-      value: 27,
-      date: DateTime(2025, 08, 12),
-    ),
-    Transaction(
-      id: Random().nextDouble().toString(),
-      title: 'Casaco',
-      value: 38,
-      date: DateTime(2025, 08, 13),
-    ),
-  ];
+  final List<Transaction> _transactions = [];
+  bool shouldShowChart = false;
 
-  _addTransaction(String title, double value) {
+  _addTransaction(String title, double value, DateTime transactionDate) {
     var transaction = Transaction(
       id: Random().nextDouble().toString(),
       title: title,
       value: value,
-      date: DateTime.now(),
+      date: transactionDate,
     );
 
-    setState(() {
-      _transactions.add(transaction);
-    });
+    setState(() => _transactions.add(transaction));
 
     Navigator.of(context).pop();
+  }
+
+  _deleteTransaction(String id) {
+    setState(() {
+      _transactions.removeWhere((transaction) => transaction.id == id);
+    });
   }
 
   _openModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (_) => TransactionForm(onFillForm: _addTransaction),
     );
   }
@@ -99,29 +80,68 @@ class _HomePageState extends State<HomePage> {
         .toList();
   }
 
+  _showChart() {
+    setState(() {
+      shouldShowChart = !shouldShowChart;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Financial',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+    bool isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
+    AppBar appBar = AppBar(
+      title: Text(
+        'Financial',
+        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
       ),
-      body: SingleChildScrollView(
-        child: SizedBox(
-          height: double.maxFinite,
-          child: Column(
-            children: [
-              Chart(recentTransactions: _recentTransactions),
-              SizedBox(
-                width: double.infinity,
-                child: Card(child: Text('Grafico')),
+      actions: isLandscape
+          ? [
+              IconButton(
+                onPressed: _showChart,
+                icon: Icon(
+                  !shouldShowChart ? Icons.show_chart_rounded : Icons.list_alt,
+                  color: Colors.white,
+                ),
               ),
-              TransactionList(transactions: _transactions),
-            ],
-          ),
-        ),
+            ]
+          : null,
+    );
+
+    return Scaffold(
+      appBar: appBar,
+      body: Scrollable(
+        initialHeight:
+            appBar.preferredSize.height + MediaQuery.of(context).padding.top,
+        fractionallyChildren: !isLandscape
+            ? [
+                ScrollableChild(
+                  Chart(recentTransactions: _recentTransactions),
+                  0.3,
+                ),
+                ScrollableChild(
+                  TransactionList(
+                    transactions: _transactions,
+                    onDeleteTransaction: _deleteTransaction,
+                  ),
+                  0.7,
+                ),
+              ]
+            : [
+                shouldShowChart
+                    ? ScrollableChild(
+                        Chart(recentTransactions: _recentTransactions),
+                        1,
+                      )
+                    : ScrollableChild(
+                        TransactionList(
+                          transactions: _transactions,
+                          onDeleteTransaction: _deleteTransaction,
+                        ),
+                        1,
+                      ),
+              ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openModal(context),

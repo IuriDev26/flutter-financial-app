@@ -5,27 +5,31 @@ import 'package:intl/intl.dart';
 
 class TransactionList extends StatelessWidget {
   final List<Transaction> transactions;
+  final void Function(String) onDeleteTransaction;
 
-  const TransactionList({super.key, required this.transactions});
+  const TransactionList({
+    super.key,
+    required this.transactions,
+    required this.onDeleteTransaction,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      margin: EdgeInsets.fromLTRB(0, 30, 0, 0),
-      child: transactions.isEmpty
-          ? EmptyTransactions()
-          : ListView.builder(
-              itemCount: transactions.length,
-              itemBuilder: (context, index) {
-                var transaction = transactions[index];
-                return Card(
-                  child: Container(
-                    margin: EdgeInsets.symmetric(vertical: 10),
-                    child: Row(
-                      children: [
-                        SizedBox(width: 50, child: Icon(Icons.attach_money)),
-                        Container(
+    return transactions.isEmpty
+        ? EmptyTransactions()
+        : ListView.builder(
+            itemCount: transactions.length,
+            itemBuilder: (context, index) {
+              var transaction = transactions[index];
+              return Card(
+                child: Container(
+                  margin: EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    children: [
+                      SizedBox(width: 50, child: Icon(Icons.attach_money)),
+                      Expanded(
+                        flex: 1,
+                        child: Container(
                           padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,12 +52,24 @@ class TransactionList extends StatelessWidget {
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Container(
+                        margin: EdgeInsets.only(right: 10),
+                        child: Column(
+                          children: [
+                            IconButton(
+                              onPressed: () =>
+                                  onDeleteTransaction(transaction.id),
+                              icon: Icon(Icons.delete, color: Colors.red),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
-    );
+                ),
+              );
+            },
+          );
   }
 }

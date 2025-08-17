@@ -8,52 +8,94 @@ class Chart extends StatelessWidget {
   final List<Transaction> recentTransactions;
 
   List<TransactionChart> get transactions {
-    if (recentTransactions.isEmpty) return [];
-
     List<TransactionChart> groupedTransactions = [];
+
+    for (var i = 0; i < 7; i++) {
+      var weekDayWord = DateFormat.E().format(
+        DateTime.now().subtract(Duration(days: i)),
+      );
+
+      groupedTransactions.add(
+        TransactionChart(weekDayWord: weekDayWord, value: 0, percentage: 0),
+      );
+    }
+
+    if (recentTransactions.isEmpty) return groupedTransactions;
+
     var amount = recentTransactions
         .map((transaction) => transaction.value)
         .toList()
         .reduce((value, element) => value + element);
 
     for (var transaction in recentTransactions) {
-      String weekDayWork = DateFormat.E().format(transaction.date);
-      var isIncluded = groupedTransactions.any(
-        (transactionChart) => transactionChart.weekDayWord == weekDayWork,
+      String weekDayWord = DateFormat.E().format(transaction.date);
+
+      var weekDayIndex = groupedTransactions.indexWhere(
+        (transactionChart) => transactionChart.weekDayWord == weekDayWord,
       );
 
-      if (!isIncluded) {
-        groupedTransactions.add(
-          TransactionChart(
-            weekDayWord: weekDayWork,
-            value: transaction.value,
-            percentage: transaction.value / amount,
-          ),
-        );
-      } else {
-        groupedTransactions.firstWhere((tr) => tr.weekDayWord == weekDayWork);
-      }
+      groupedTransactions[weekDayIndex].percentage = transaction.value / amount;
+      groupedTransactions[weekDayIndex].value += transaction.value;
     }
 
-    return groupedTransactions;
+    return groupedTransactions.reversed.toList();
   }
 
   const Chart({super.key, required this.recentTransactions});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: transactions
-          .map(
-            (transaction) => ChartBar(
-              transaction: TransactionChart(
-                weekDayWord: transaction.weekDayWord,
-                value: transaction.value,
-                percentage: transaction.percentage,
-              ),
-            ),
-          )
-          .toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Card(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: constraints.maxHeight * 0.1,
+                  horizontal: constraints.maxWidth * 0.03,
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: constraints.maxHeight * 0.2,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Last Days Expenses',
+                            style: TextStyle(fontSize: 20),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        height: constraints.maxHeight * 0.6,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: transactions
+                              .map(
+                                (transaction) => ChartBar(
+                                  transaction: TransactionChart(
+                                    weekDayWord: transaction.weekDayWord,
+                                    value: transaction.value,
+                                    percentage: transaction.percentage,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
